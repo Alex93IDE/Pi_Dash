@@ -91,6 +91,16 @@ export type App = {
 };
 export type AppInput = Omit<App, "id">;
 
+/** Whether an app answered the server's last check. */
+export type AppStatus = {
+  id: number;
+  name: string;
+  up: boolean;
+  code: number | null; // HTTP status, when it answered at all
+  ms: number | null; // response time
+  error: string | null; // why it's down: "timeout", "connection refused", "HTTP 502"…
+};
+
 /** Sent once on every (re)connection of the event stream. */
 export type Hello = {
   version: string;
@@ -121,6 +131,7 @@ export type StreamEvents = {
   slow: SlowData;
   services: SystemdService[];
   docker: DockerContainer[];
+  apps: AppStatus[];
 };
 
 // Pironman5 case commands, validated on the server.

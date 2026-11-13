@@ -63,6 +63,11 @@ export function useAlerts() {
       list.push({ level: serious ? "error" : "warn", title: c.name, detail: c.status, to: "docker" });
     }
 
+    // Apps that stopped answering the server's check.
+    for (const a of Object.values(store.appStatus)) {
+      if (!a.up) list.push({ level: "warn", title: a.name, detail: `app down · ${a.error}`, to: "apps" });
+    }
+
     // Firewall
     if (slow.ufw_status && slow.ufw_status !== "active") {
       list.push({ level: "error", title: "UFW", detail: `firewall ${slow.ufw_status}`, to: "ufw" });

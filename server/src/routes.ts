@@ -17,7 +17,12 @@ type Deps = {
   apps: Apps;
   icons: Icons;
   history: History;
-  publishers: { systemd: Publisher<"services">; docker: Publisher<"docker">; fast: Publisher<"fast"> };
+  publishers: {
+    systemd: Publisher<"services">;
+    docker: Publisher<"docker">;
+    fast: Publisher<"fast">;
+    apps: Publisher<"apps">;
+  };
 };
 
 /**
@@ -114,11 +119,14 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
   });
   r.post("/apps", (req, res) => {
     res.status(201).json(apps.create(validateApp(req.body ?? {})));
+    // Check the new one straight away rather than in up to 30 s.
+    publishers.apps.trigger();
   });
   r.put("/apps/:id", (req, res) => {
     const id = appId(req);
     const input = validateApp(req.body ?? {});
     if (!apps.update(id, input)) return void res.status(404).json({ error: "No such app" });
+    publishers.apps.trigger();
     res.json({ id, ...input });
   });
   // The app's own icon, found and cached by the server. 404 = use the initial.
@@ -138,6 +146,7 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
   });
   r.delete("/apps/:id", (req, res) => {
     if (!apps.remove(appId(req))) return void res.status(404).json({ error: "No such app" });
+    publishers.apps.trigger();
     res.status(204).end();
   });
 

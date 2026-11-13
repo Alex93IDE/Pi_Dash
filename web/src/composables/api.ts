@@ -55,6 +55,7 @@ export function useApi() {
     on("slow", (d) => store.setSlowData(d));
     on("services", (d) => Array.isArray(d) && store.setServices(d));
     on("docker", (d) => Array.isArray(d) && store.setDocker(d));
+    on("apps", (d) => Array.isArray(d) && store.setAppStatus(d));
   }
 
   function disconnect() {

@@ -5,6 +5,7 @@ import path from "node:path";
 import express from "express";
 import type { FastData } from "../../shared/types.ts";
 import { Apps } from "./apps.ts";
+import { checkAll } from "./appStatus.ts";
 import * as config from "./config.ts";
 import { openDb } from "./db.ts";
 import { History } from "./history.ts";
@@ -41,6 +42,7 @@ const publishers = {
   }),
   systemd: new Publisher(hub, "services", config.INTERVAL_SLOW, () => listServices(favorites.names("systemd"))),
   docker: new Publisher(hub, "docker", config.INTERVAL_SLOW, () => listContainers(favorites.names("docker"))),
+  apps: new Publisher(hub, "apps", config.INTERVAL_SLOW, () => checkAll(apps.list())),
 };
 
 hub.on("fast", (d) => history.add(d));

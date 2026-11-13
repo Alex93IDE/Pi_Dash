@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import type {
+  AppStatus,
   DockerContainer,
   FastData,
   Hello,
@@ -84,6 +85,8 @@ export const usePiStore = defineStore("pi", {
     // null until the first list arrives; [] means "none".
     services: null as SystemdService[] | null,
     docker: null as DockerContainer[] | null,
+    // Last check of each app, by id. Empty until the first check arrives.
+    appStatus: {} as Record<number, AppStatus>,
     // Favorite toggles sent but not yet confirmed, keyed by favoriteKey() and
     // holding the requested value. The server confirms by sending the list again.
     pendingFavorites: {} as Record<string, boolean>,
@@ -107,6 +110,9 @@ export const usePiStore = defineStore("pi", {
     setDocker(list: DockerContainer[]) {
       this.docker = list;
       this.settleFavorites("docker", list);
+    },
+    setAppStatus(list: AppStatus[]) {
+      this.appStatus = Object.fromEntries(list.map((s) => [s.id, s]));
     },
     markFavoritePending(source: FavoriteSource, name: string, value: boolean) {
       this.pendingFavorites[favoriteKey(source, name)] = value;
