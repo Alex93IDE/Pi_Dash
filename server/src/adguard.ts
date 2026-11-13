@@ -51,16 +51,57 @@ export function summarize(stats: Stats, status: { protection_enabled?: boolean }
   };
 }
 
-async function get<T>(path: string): Promise<T> {
-  const headers: Record<string, string> = {};
-  if (ADGUARD_USER) {
-    headers.Authorization = `Basic ${Buffer.from(`${ADGUARD_USER}:${ADGUARD_PASS}`).toString("base64")}`;
-  }
-  const r = await fetch(`${ADGUARD_URL.replace(/\/$/, "")}${path}`, {
-    headers,
+// AdGuard blocks an address for 15 min after 5 failed logins (its
+// block_auth_min). Asking every 30 s with a wrong password would keep it
+// blocked forever, so after a refusal we stay quiet for that long. Fixing
+// .env means restarting the service, which clears this anyway.
+const AUTH_BACKOFF_MS = 15 * 60_000;
+let authFailedUntil = 0;
+let authError = "";
+
+class AuthError extends Error {}
+
+const base = () => ADGUARD_URL.replace(/\/$/, "");
+
+// Session cookie from /control/login — the same way the web UI signs in.
+// Some AdGuard builds refuse basic auth on the API but accept this.
+let session = "";
+
+/** Sign in like the browser does. Returns false if AdGuard says no. */
+async function login(): Promise<boolean> {
+  const r = await fetch(`${base()}/control/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name: ADGUARD_USER, password: ADGUARD_PASS }),
     signal: AbortSignal.timeout(5000),
   });
-  if (r.status === 401 || r.status === 403) throw new Error("wrong ADGUARD_USER / ADGUARD_PASS");
+  if (r.status === 403) throw new AuthError("AdGuard blocked us after failed logins — wait 15 min");
+  if (!r.ok) return false;
+  // "agh_session=abc123; Path=/; HttpOnly" -> "agh_session=abc123"
+  session = (r.headers.getSetCookie?.() ?? [r.headers.get("set-cookie") ?? ""])
+    .map((c) => c.split(";")[0])
+    .filter((c) => c.startsWith("agh_session="))
+    .join("; ");
+  return session !== "";
+}
+
+async function get<T>(path: string, retried = false): Promise<T> {
+  const headers: Record<string, string> = {};
+  if (session) headers.Cookie = session;
+  else if (ADGUARD_USER) {
+    headers.Authorization = `Basic ${Buffer.from(`${ADGUARD_USER}:${ADGUARD_PASS}`).toString("base64")}`;
+  }
+  const r = await fetch(`${base()}${path}`, { headers, signal: AbortSignal.timeout(5000) });
+
+  if (r.status === 401 && ADGUARD_USER && !retried) {
+    // Basic auth refused, or the session expired: sign in and try once more.
+    session = "";
+    if (await login()) return get<T>(path, true);
+    throw new AuthError("AdGuard rejected ADGUARD_USER / ADGUARD_PASS (tried basic auth and login)");
+  }
+  if (r.status === 401) throw new AuthError("wrong ADGUARD_USER / ADGUARD_PASS");
+  // 403 is AdGuard's lockout after too many failed logins.
+  if (r.status === 403) throw new AuthError("AdGuard blocked us after failed logins — wait 15 min");
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return (await r.json()) as T;
 }
@@ -68,13 +109,20 @@ async function get<T>(path: string): Promise<T> {
 /** null when AdGuard isn't configured, so the card stays hidden. */
 export async function collect(): Promise<AdGuardData | null> {
   if (!ADGUARD_URL) return null;
+  if (Date.now() < authFailedUntil) {
+    const mins = Math.ceil((authFailedUntil - Date.now()) / 60_000);
+    return empty(`${authError} (paused, retrying in ${mins} min)`);
+  }
   try {
-    const [stats, status] = await Promise.all([
-      get<Stats>("/control/stats"),
-      get<{ protection_enabled?: boolean }>("/control/status"),
-    ]);
+    // One after the other: if the first has to sign in, the second reuses it.
+    const status = await get<{ protection_enabled?: boolean }>("/control/status");
+    const stats = await get<Stats>("/control/stats");
     return summarize(stats, status);
   } catch (e) {
+    if (e instanceof AuthError) {
+      authFailedUntil = Date.now() + AUTH_BACKOFF_MS;
+      authError = e.message;
+    }
     const err = e as Error & { cause?: { code?: string } };
     return empty(err.cause?.code === "ECONNREFUSED" ? "not reachable" : err.message);
   }
