@@ -61,6 +61,12 @@ let authError = "";
 
 class AuthError extends Error {}
 
+// AdGuard's answer while it's locking us out after too many failed logins:
+// 429 from the login endpoint, 403 on some versions. The right password is
+// refused too until it ends, so it must not read as "wrong password".
+const isLockout = (status: number) => status === 429 || status === 403;
+const LOCKOUT = "AdGuard is blocking logins after too many failed attempts — wait 15 min";
+
 const base = () => ADGUARD_URL.replace(/\/$/, "");
 
 // Session cookie from /control/login — the same way the web UI signs in.
@@ -75,7 +81,7 @@ async function login(): Promise<boolean> {
     body: JSON.stringify({ name: ADGUARD_USER, password: ADGUARD_PASS }),
     signal: AbortSignal.timeout(5000),
   });
-  if (r.status === 403) throw new AuthError("AdGuard blocked us after failed logins — wait 15 min");
+  if (isLockout(r.status)) throw new AuthError(LOCKOUT);
   if (!r.ok) return false;
   // "agh_session=abc123; Path=/; HttpOnly" -> "agh_session=abc123"
   session = (r.headers.getSetCookie?.() ?? [r.headers.get("set-cookie") ?? ""])
@@ -100,8 +106,7 @@ async function get<T>(path: string, retried = false): Promise<T> {
     throw new AuthError("AdGuard rejected ADGUARD_USER / ADGUARD_PASS (tried basic auth and login)");
   }
   if (r.status === 401) throw new AuthError("wrong ADGUARD_USER / ADGUARD_PASS");
-  // 403 is AdGuard's lockout after too many failed logins.
-  if (r.status === 403) throw new AuthError("AdGuard blocked us after failed logins — wait 15 min");
+  if (isLockout(r.status)) throw new AuthError(LOCKOUT);
   if (!r.ok) throw new Error(`HTTP ${r.status}`);
   return (await r.json()) as T;
 }
