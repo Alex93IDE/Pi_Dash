@@ -196,7 +196,9 @@ code, .mono {
   align-content: flex-start;
   gap: 20px;
   padding: 32px 24px;
-  min-height: 100vh;
+  /* Fills what's left between the nav and the footer — not a whole screen of
+     its own, which pushed the footer below the fold on every tab. */
+  flex: 1;
   background: radial-gradient(
       ellipse 80% 60% at 50% 0%,
       rgba(4, 145, 115, 0.06) 0%,

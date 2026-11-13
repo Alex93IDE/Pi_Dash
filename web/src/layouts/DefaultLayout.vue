@@ -198,6 +198,7 @@ function toggle() {
 <style scoped>
 .layout {
   min-height: 100vh;
+  min-height: 100dvh; /* phones: the visible height, not counting the URL bar */
   display: flex;
   flex-direction: column;
   background-color: var(--bg);
@@ -477,6 +478,8 @@ function toggle() {
 
 .content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   padding: 1.5rem;
   overflow-x: hidden; /* keeps the slide animation from adding a scrollbar */
 }
