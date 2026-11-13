@@ -1,6 +1,6 @@
 {
   "name": "pi-dash",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "description": "Live dashboard and controls for a Raspberry Pi 5 in a Pironman5 case",
   "license": "MIT",
