@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { onMounted, reactive, ref } from "vue";
+import { onMounted, ref } from "vue";
 import { Check, ExternalLink, LayoutGrid, Pencil, Plus, Trash2, X } from "lucide-vue-next";
+import AppIcon from "../components/AppIcon.vue";
 import { api } from "../composables/api";
+import { appHost, resolveAppUrl } from "../utils/apps";
 import type { App, AppInput } from "../../../shared/types";
 
 const apps = ref<App[] | null>(null);
@@ -17,27 +19,6 @@ async function load() {
   }
 }
 onMounted(load);
-
-/** {host} becomes whatever host this dashboard was opened on. */
-const resolve = (url: string) => url.replaceAll("{host}", window.location.hostname);
-
-function hostOf(url: string) {
-  try {
-    return new URL(resolve(url)).host;
-  } catch {
-    return url;
-  }
-}
-
-// The app's own favicon when it has one; its initial otherwise.
-const brokenIcons = reactive(new Set<number>());
-function iconUrl(url: string) {
-  try {
-    return new URL("/favicon.ico", resolve(url)).href;
-  } catch {
-    return "";
-  }
-}
 
 // ── Add / edit form ──────────────────────────────────────
 // id null = adding a new one.
@@ -130,19 +111,11 @@ function toggleEditing() {
 
       <ul v-if="apps" class="grid">
         <li v-for="app in apps" :key="app.id" class="tile-wrap">
-          <a class="tile" :href="resolve(app.url)" target="_blank" rel="noopener noreferrer">
-            <span class="icon">
-              <img
-                v-if="!brokenIcons.has(app.id) && iconUrl(app.url)"
-                :src="iconUrl(app.url)"
-                alt=""
-                @error="brokenIcons.add(app.id)"
-              />
-              <template v-else>{{ app.name[0]?.toUpperCase() }}</template>
-            </span>
+          <a class="tile" :href="resolveAppUrl(app.url)" target="_blank" rel="noopener noreferrer">
+            <AppIcon :app="app" />
             <span class="info">
               <span class="name">{{ app.name }}</span>
-              <span class="desc">{{ app.description || hostOf(app.url) }}</span>
+              <span class="desc">{{ app.description || appHost(app.url) }}</span>
             </span>
             <ExternalLink v-if="!editing" :size="13" class="go" />
           </a>
@@ -223,26 +196,6 @@ function toggleEditing() {
 a.tile:hover {
   border-color: rgba(4, 145, 115, 0.5);
   background: rgba(4, 145, 115, 0.06);
-}
-
-.icon {
-  flex-shrink: 0;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 10px;
-  background: var(--primary-muted);
-  color: var(--primary);
-  font: 600 15px var(--font-sans);
-  overflow: hidden;
-}
-
-.icon img {
-  width: 22px;
-  height: 22px;
-  object-fit: contain;
 }
 
 .info {

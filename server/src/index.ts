@@ -8,6 +8,7 @@ import { Apps } from "./apps.ts";
 import * as config from "./config.ts";
 import { openDb } from "./db.ts";
 import { History } from "./history.ts";
+import { Icons } from "./icons.ts";
 import { Hub, Publisher } from "./hub.ts";
 import * as security from "./metrics/security.ts";
 import * as storage from "./metrics/storage.ts";
@@ -20,6 +21,7 @@ import { Favorites, listContainers, listServices } from "./units.ts";
 const db = openDb();
 const favorites = new Favorites(db);
 const apps = new Apps(db);
+const icons = new Icons(db);
 const history = new History(db, config.HISTORY_DAYS);
 
 const hub = new Hub(() => ({
@@ -47,7 +49,7 @@ hub.on("fast", (d) => history.add(d));
 const app = express();
 app.disable("x-powered-by");
 app.use(express.json({ limit: "16kb" }));
-app.use("/api", apiRouter({ hub, favorites, apps, history, publishers }));
+app.use("/api", apiRouter({ hub, favorites, apps, icons, history, publishers }));
 
 if (!existsSync(path.join(config.WEB_ROOT, "index.html"))) {
   console.warn(`[http] ${config.WEB_ROOT}/index.html not found — run "npm run build"`);

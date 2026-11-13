@@ -6,6 +6,7 @@ import type { Apps } from "./apps.ts";
 import { validateApp } from "./apps.ts";
 import { BadRequest } from "./errors.ts";
 import type { History } from "./history.ts";
+import type { Icons } from "./icons.ts";
 import type { Hub, Publisher } from "./hub.ts";
 import * as pironman from "./pironman.ts";
 import { checkAction, isSource, runAction, type Favorites } from "./units.ts";
@@ -14,6 +15,7 @@ type Deps = {
   hub: Hub;
   favorites: Favorites;
   apps: Apps;
+  icons: Icons;
   history: History;
   publishers: { systemd: Publisher<"services">; docker: Publisher<"docker">; fast: Publisher<"fast"> };
 };
@@ -42,7 +44,7 @@ function requireJson(req: Request, _res: Response, next: NextFunction): void {
   next();
 }
 
-export function apiRouter({ hub, favorites, apps, history, publishers }: Deps): Router {
+export function apiRouter({ hub, favorites, apps, icons, history, publishers }: Deps): Router {
   const r = Router();
   r.use(sameOrigin, requireJson);
 
@@ -118,6 +120,21 @@ export function apiRouter({ hub, favorites, apps, history, publishers }: Deps): 
     const input = validateApp(req.body ?? {});
     if (!apps.update(id, input)) return void res.status(404).json({ error: "No such app" });
     res.json({ id, ...input });
+  });
+  // The app's own icon, found and cached by the server. 404 = use the initial.
+  r.get("/apps/:id/icon", async (req, res) => {
+    const app = apps.get(appId(req));
+    const icon = app && (await icons.get(app.id, app.url));
+    if (!icon) return void res.status(404).end();
+    res.set({
+      "Content-Type": icon.type,
+      // The URL carries the app's URL as a version, so a day is safe.
+      "Cache-Control": "public, max-age=86400",
+      // An SVG opened on its own must not be able to run anything.
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.end(Buffer.from(icon.data));
   });
   r.delete("/apps/:id", (req, res) => {
     if (!apps.remove(appId(req))) return void res.status(404).json({ error: "No such app" });

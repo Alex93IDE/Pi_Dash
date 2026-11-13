@@ -33,6 +33,10 @@ export class Apps {
     return this.db.prepare("SELECT id, name, url, description FROM apps ORDER BY name COLLATE NOCASE").all() as App[];
   }
 
+  get(id: number): App | undefined {
+    return this.db.prepare("SELECT id, name, url, description FROM apps WHERE id = ?").get(id) as App | undefined;
+  }
+
   create(input: AppInput): App {
     const r = this.db
       .prepare("INSERT INTO apps (name, url, description) VALUES (:name, :url, :description)")

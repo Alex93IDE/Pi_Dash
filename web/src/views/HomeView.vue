@@ -4,6 +4,7 @@ import CpuCard from "../components/CpuCard.vue";
 import RamCard from "../components/RamCard.vue";
 import AlertsCard from "../components/AlertsCard.vue";
 import NetworkCard from "../components/NetworkCard.vue";
+import AppsCard from "../components/AppsCard.vue";
 </script>
 
 <template>
@@ -13,6 +14,7 @@ import NetworkCard from "../components/NetworkCard.vue";
       <RamCard />
       <DiskNetCard />
       <NetworkCard />
+      <AppsCard class="span-all" />
       <AlertsCard class="span-all" />
     </div>
   </div>
@@ -22,7 +24,7 @@ import NetworkCard from "../components/NetworkCard.vue";
 /*
  * Four 350px cards: one column, two by two, or all four in a row — never
  * three and one. Alerts spans the grid, so it's never wider than the cards
- * above it. Two columns start at tablet width (a Tab S10 FE in portrait is
+ * above it; Apps does the same, and only shows once you've added some. Two columns start at tablet width (a Tab S10 FE in portrait is
  * ~800px) and are allowed to shrink a little below 350px to fit.
  */
 .home-grid {

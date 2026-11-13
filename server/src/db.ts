@@ -12,6 +12,7 @@ export function openDb(file = path.join(DATA_DIR, "pi-dash.db")): DatabaseSync {
   // WAL: readers (history queries) don't block the once-a-minute writer, and
   // a power cut can't leave half a transaction behind.
   db.exec("PRAGMA journal_mode = WAL");
+  db.exec("PRAGMA foreign_keys = ON");
   db.exec(`
     CREATE TABLE IF NOT EXISTS favorites (
       source TEXT NOT NULL,
@@ -23,6 +24,14 @@ export function openDb(file = path.join(DATA_DIR, "pi-dash.db")): DatabaseSync {
       name        TEXT NOT NULL,
       url         TEXT NOT NULL,
       description TEXT NOT NULL DEFAULT ''
+    );
+    -- Each app's icon, cached; data NULL = looked and found none.
+    CREATE TABLE IF NOT EXISTS app_icons (
+      app_id     INTEGER PRIMARY KEY REFERENCES apps (id) ON DELETE CASCADE,
+      url        TEXT NOT NULL,    -- the app URL it was found for
+      type       TEXT,
+      data       BLOB,
+      fetched_at INTEGER NOT NULL
     );
     -- One row per minute: averages, plus the peak for CPU and temperature.
     CREATE TABLE IF NOT EXISTS metrics (
