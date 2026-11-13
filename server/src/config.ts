@@ -30,6 +30,8 @@ export const DATA_DIR = path.resolve(ROOT, env("DATA_DIR", "data"));
 
 export const INTERVAL_FAST = num("INTERVAL_FAST", 1) * 1000;
 export const INTERVAL_SLOW = num("INTERVAL_SLOW", 30) * 1000;
+// CPU and RAM per container. Only collected while someone is watching.
+export const INTERVAL_DOCKER_STATS = num("INTERVAL_DOCKER_STATS", 10) * 1000;
 export const HISTORY_DAYS = num("HISTORY_DAYS", 30);
 
 export const PIRONMAN_API = env("PIRONMAN_API", "http://localhost:34001/api/v1.0");

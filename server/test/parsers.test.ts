@@ -4,7 +4,7 @@ import { parseCrowdsec, parseF2b, parseUfw } from "../src/metrics/security.ts";
 import { parseSmart } from "../src/metrics/storage.ts";
 import { cpuUsage, defaultRouteInterface, formatUptime, parseNetDev } from "../src/metrics/system.ts";
 import { parseWgHandshakes } from "../src/metrics/vpn.ts";
-import { parseDockerPs, toServices } from "../src/units.ts";
+import { parseDockerPs, parseDockerStats, parseSize, toServices } from "../src/units.ts";
 
 test("formatUptime", () => {
   assert.equal(formatUptime(0), "0d 0h 0m");
@@ -113,4 +113,19 @@ test("toServices: template unit files and not-found units", () => {
   assert.equal(out.length, 2);
   assert.equal(out[0].favorite, true);
   assert.equal(out[1].enabled, "enabled");
+});
+
+test("parseSize handles docker's binary and decimal units", () => {
+  assert.equal(parseSize("512B"), 512);
+  assert.equal(parseSize("1.5KiB"), 1536);
+  assert.equal(parseSize("145.2MiB"), Math.round(145.2 * 1024 ** 2));
+  assert.equal(parseSize("2GB"), 2e9);
+  assert.equal(parseSize("--"), 0);
+});
+
+test("parseDockerStats", () => {
+  const line = JSON.stringify({ Name: "keeper", CPUPerc: "12.50%", MemUsage: "100MiB / 7.75GiB", MemPerc: "1.26%" });
+  assert.deepEqual(parseDockerStats(`${line}\nnot json`), [
+    { name: "keeper", cpu_pct: 12.5, mem_bytes: 100 * 1024 ** 2, mem_pct: 1.26 },
+  ]);
 });

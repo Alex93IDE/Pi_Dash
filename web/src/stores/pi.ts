@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import type {
   AppStatus,
   DockerContainer,
+  DockerStats,
   FastData,
   Hello,
   SlowData,
@@ -85,6 +86,8 @@ export const usePiStore = defineStore("pi", {
     // null until the first list arrives; [] means "none".
     services: null as SystemdService[] | null,
     docker: null as DockerContainer[] | null,
+    // CPU and RAM of running containers, by name.
+    dockerStats: {} as Record<string, DockerStats>,
     // Last check of each app, by id. Empty until the first check arrives.
     appStatus: {} as Record<number, AppStatus>,
     // Favorite toggles sent but not yet confirmed, keyed by favoriteKey() and
@@ -110,6 +113,9 @@ export const usePiStore = defineStore("pi", {
     setDocker(list: DockerContainer[]) {
       this.docker = list;
       this.settleFavorites("docker", list);
+    },
+    setDockerStats(list: DockerStats[]) {
+      this.dockerStats = Object.fromEntries(list.map((s) => [s.name, s]));
     },
     setAppStatus(list: AppStatus[]) {
       this.appStatus = Object.fromEntries(list.map((s) => [s.id, s]));

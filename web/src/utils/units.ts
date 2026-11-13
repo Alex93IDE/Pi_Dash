@@ -1,4 +1,5 @@
 import type { DockerContainer, FavoriteSource, SystemdService } from "../stores/pi";
+import type { DockerStats } from "../../../shared/types";
 
 /** on = green, warn = amber, off = red, idle = grey. */
 export type Tone = "on" | "warn" | "off" | "idle";
@@ -14,6 +15,7 @@ export type UnitRow = {
   subtitle: string;
   status: string;
   tag?: string; // small neutral label, e.g. systemd's unit file state
+  usage?: { cpu: number; mem: number }; // running containers: CPU %, RAM bytes
   tone: Tone;
   favorite: boolean;
 };
@@ -63,7 +65,7 @@ export function systemdRow(svc: SystemdService): UnitRow {
   };
 }
 
-export function dockerRow(c: DockerContainer): UnitRow {
+export function dockerRow(c: DockerContainer, stats?: DockerStats): UnitRow {
   return {
     source: "docker",
     name: c.name,
@@ -72,5 +74,17 @@ export function dockerRow(c: DockerContainer): UnitRow {
     status: c.status,
     tone: dockerTone(c),
     favorite: c.favorite,
+    usage: stats && c.state === "running" ? { cpu: stats.cpu_pct, mem: stats.mem_bytes } : undefined,
   };
+}
+
+export function formatBytes(bytes: number): string {
+  const units = ["B", "KB", "MB", "GB"];
+  let v = bytes;
+  let i = 0;
+  while (v >= 1024 && i < units.length - 1) {
+    v /= 1024;
+    i++;
+  }
+  return `${v >= 100 || i === 0 ? v.toFixed(0) : v.toFixed(1)} ${units[i]}`;
 }

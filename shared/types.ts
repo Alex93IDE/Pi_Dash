@@ -76,6 +76,14 @@ export type DockerContainer = {
   favorite: boolean;
 };
 
+/** Live resource use of a running container, from `docker stats`. */
+export type DockerStats = {
+  name: string;
+  cpu_pct: number; // of one core: 200 = two cores busy
+  mem_bytes: number;
+  mem_pct: number; // of the container's limit, usually all of the Pi's RAM
+};
+
 export type UnitSource = "systemd" | "docker";
 export const UNIT_ACTIONS = ["start", "stop", "restart"] as const;
 export type UnitAction = (typeof UNIT_ACTIONS)[number];
@@ -132,6 +140,7 @@ export type StreamEvents = {
   services: SystemdService[];
   docker: DockerContainer[];
   apps: AppStatus[];
+  docker_stats: DockerStats[];
 };
 
 // Pironman5 case commands, validated on the server.

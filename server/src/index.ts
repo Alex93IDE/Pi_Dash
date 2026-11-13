@@ -17,7 +17,7 @@ import * as system from "./metrics/system.ts";
 import * as vpn from "./metrics/vpn.ts";
 import * as pironman from "./pironman.ts";
 import { apiRouter } from "./routes.ts";
-import { Favorites, listContainers, listServices } from "./units.ts";
+import { containerStats, Favorites, listContainers, listServices } from "./units.ts";
 
 const db = openDb();
 const favorites = new Favorites(db);
@@ -42,10 +42,15 @@ const publishers = {
   }),
   systemd: new Publisher(hub, "services", config.INTERVAL_SLOW, () => listServices(favorites.names("systemd"))),
   docker: new Publisher(hub, "docker", config.INTERVAL_SLOW, () => listContainers(favorites.names("docker"))),
+  dockerStats: new Publisher(hub, "docker_stats", config.INTERVAL_DOCKER_STATS, containerStats, {
+    onlyWatched: true,
+  }),
   apps: new Publisher(hub, "apps", config.INTERVAL_SLOW, () => checkAll(apps.list())),
 };
 
 hub.on("fast", (d) => history.add(d));
+// Stats aren't collected while nobody watches, so what's cached may be old.
+hub.onConnect(() => publishers.dockerStats.trigger());
 
 // ── HTTP ─────────────────────────────────────────────────
 const app = express();

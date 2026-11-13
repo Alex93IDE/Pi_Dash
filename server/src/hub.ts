@@ -21,12 +21,21 @@ export class Publisher<T extends Topic> {
   private running = false;
   private again = false;
   private stopped = false;
+  private onlyWatched: boolean;
 
-  constructor(hub: Hub, topic: T, every: number, collect: () => Promise<StreamEvents[T]>) {
+  /** onlyWatched: skip the work while no browser has the dashboard open. */
+  constructor(
+    hub: Hub,
+    topic: T,
+    every: number,
+    collect: () => Promise<StreamEvents[T]>,
+    { onlyWatched = false } = {},
+  ) {
     this.hub = hub;
     this.topic = topic;
     this.every = every;
     this.collect = collect;
+    this.onlyWatched = onlyWatched;
   }
 
   start(): void {
@@ -57,7 +66,7 @@ export class Publisher<T extends Topic> {
   }
 
   private async run(): Promise<void> {
-    if (this.running) return;
+    if (this.running || (this.onlyWatched && !this.hub.watched)) return;
     this.running = true;
     try {
       do {
@@ -78,9 +87,15 @@ export class Hub {
   private clients = new Set<Response>();
   private hello: () => StreamEvents["hello"];
   private listeners: { [K in Topic]?: ((data: StreamEvents[K]) => void)[] } = {};
+  private connectListeners: (() => void)[] = [];
 
   constructor(hello: () => StreamEvents["hello"]) {
     this.hello = hello;
+  }
+
+  /** Whether any browser is connected. */
+  get watched(): boolean {
+    return this.clients.size > 0;
   }
 
   get<T extends Topic>(topic: T): StreamEvents[T] | undefined {
@@ -89,6 +104,11 @@ export class Hub {
 
   on<T extends Topic>(topic: T, fn: (data: StreamEvents[T]) => void): void {
     ((this.listeners[topic] ??= []) as ((data: StreamEvents[T]) => void)[]).push(fn);
+  }
+
+  /** Called whenever a browser connects. */
+  onConnect(fn: () => void): void {
+    this.connectListeners.push(fn);
   }
 
   publish<T extends Topic>(topic: T, data: StreamEvents[T]): void {
@@ -114,6 +134,7 @@ export class Hub {
       res.write(`event: ${topic}\ndata: ${JSON.stringify(data)}\n\n`);
     }
     this.clients.add(res);
+    for (const fn of this.connectListeners) fn();
     res.on("close", () => this.clients.delete(res));
   }
 

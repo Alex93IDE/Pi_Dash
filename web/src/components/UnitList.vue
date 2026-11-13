@@ -3,8 +3,14 @@ import { computed, ref, type Component } from "vue";
 import { LoaderCircle, Play, RotateCw, Search, Square, Star } from "lucide-vue-next";
 import { useApi } from "../composables/api";
 import { favoriteKey, usePiStore } from "../stores/pi";
-import type { UnitRow } from "../utils/units";
+import { formatBytes, type UnitRow } from "../utils/units";
 import type { UnitAction } from "../../../shared/types";
+
+export type UnitSort = {
+  id: string;
+  label: string;
+  compare: (a: UnitRow, b: UnitRow) => number;
+};
 
 export type UnitFilter = {
   id: string;
@@ -17,6 +23,7 @@ const props = defineProps<{
   icon: Component;
   rows: UnitRow[] | null; // null = nothing received yet
   filters: UnitFilter[];
+  sorts?: UnitSort[]; // offered as buttons; by name when there are none
   emptyText: string;
 }>();
 
@@ -24,6 +31,7 @@ const store = usePiStore();
 const { setFavorite, unitAction } = useApi();
 
 const query = ref("");
+const activeSort = ref(props.sorts?.[0]?.id);
 const activeFilter = ref(props.filters[0]?.id);
 
 function countFor(filter: UnitFilter) {
@@ -44,7 +52,11 @@ const visible = computed(() => {
         r.name.toLowerCase().includes(q) ||
         r.subtitle.toLowerCase().includes(q)
     )
-    .sort((a, b) => a.title.localeCompare(b.title));
+    .sort(
+      (a, b) =>
+        (props.sorts?.find((s) => s.id === activeSort.value)?.compare(a, b) ?? 0) ||
+        a.title.localeCompare(b.title)
+    );
 });
 
 function isPending(row: UnitRow) {
@@ -114,6 +126,19 @@ async function act(row: UnitRow, action: UnitAction) {
           {{ f.label }} <span class="filter-count">{{ countFor(f) }}</span>
         </button>
       </div>
+      <div v-if="sorts?.length" class="filters sorts">
+        <span class="sort-label">Sort</span>
+        <button
+          v-for="s in sorts"
+          :key="s.id"
+          type="button"
+          class="filter"
+          :class="{ active: activeSort === s.id }"
+          @click="activeSort = s.id"
+        >
+          {{ s.label }}
+        </button>
+      </div>
     </div>
 
     <div v-if="rows === null" class="empty">Waiting for data…</div>
@@ -135,6 +160,9 @@ async function act(row: UnitRow, action: UnitAction) {
           <span class="title">{{ row.title }}</span>
           <span class="subtitle">{{ row.subtitle }}</span>
         </div>
+        <span v-if="row.usage" class="usage" title="CPU (100 % = one core) · memory">
+          {{ row.usage.cpu.toFixed(1) }} % · {{ formatBytes(row.usage.mem) }}
+        </span>
         <span v-if="row.tag" class="tag">{{ row.tag }}</span>
         <span class="status">{{ row.status }}</span>
         <div v-if="canControl" class="actions">
@@ -236,6 +264,24 @@ async function act(row: UnitRow, action: UnitAction) {
   color: var(--primary);
   border-color: var(--primary);
   background: var(--primary-muted);
+}
+
+.sort-label {
+  align-self: center;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-left: 4px;
+}
+
+.usage {
+  flex-shrink: 0;
+  font-size: 10.5px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .filter-count {
@@ -420,7 +466,8 @@ async function act(row: UnitRow, action: UnitAction) {
     flex-basis: calc(100% - 47px);
   }
 
-  .tag {
+  .tag,
+  .usage {
     margin-left: 47px;
   }
 

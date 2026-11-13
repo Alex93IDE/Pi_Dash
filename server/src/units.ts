@@ -4,6 +4,7 @@ import type { DatabaseSync } from "node:sqlite";
 import {
   UNIT_ACTIONS,
   type DockerContainer,
+  type DockerStats,
   type SystemdService,
   type UnitAction,
   type UnitSource,
@@ -95,6 +96,45 @@ export function parseDockerPs(text: string, favs: Set<string>): DockerContainer[
     });
   }
   return out;
+}
+
+/** "145.2MiB", "1.5GB", "512kB" -> bytes. */
+export function parseSize(text: string): number {
+  const m = /^([\d.]+)\s*([kKMGT]i?)?B$/.exec(text.trim());
+  if (!m) return 0;
+  const unit = m[2] ?? "";
+  const base = unit.includes("i") ? 1024 : 1000;
+  const power = " KMGT".indexOf(unit[0]?.toUpperCase() ?? " ");
+  return Math.round(Number(m[1]) * base ** Math.max(0, power));
+}
+
+/** `docker stats --no-stream --format '{{json .}}'` output -> per-container use. */
+export function parseDockerStats(text: string): DockerStats[] {
+  const out: DockerStats[] = [];
+  for (const line of text.split("\n")) {
+    let s: Record<string, string>;
+    try {
+      s = JSON.parse(line);
+    } catch {
+      continue;
+    }
+    const pct = (v: string | undefined) => Number.parseFloat(v ?? "") || 0;
+    out.push({
+      name: s.Name ?? "",
+      cpu_pct: pct(s.CPUPerc),
+      mem_bytes: parseSize((s.MemUsage ?? "").split("/")[0]),
+      mem_pct: pct(s.MemPerc),
+    });
+  }
+  return out;
+}
+
+/**
+ * Resource use of the running containers. docker stats samples for about a
+ * second to get CPU, so this runs on its own clock, apart from the list.
+ */
+export async function containerStats(): Promise<DockerStats[]> {
+  return parseDockerStats(await run("docker", ["stats", "--no-stream", "--format", "{{json .}}"], 15_000));
 }
 
 /** Every container, running or not. Empty if Docker isn't there. */
