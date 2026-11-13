@@ -5,6 +5,7 @@ import RamCard from "../components/RamCard.vue";
 import AlertsCard from "../components/AlertsCard.vue";
 import NetworkCard from "../components/NetworkCard.vue";
 import AppsCard from "../components/AppsCard.vue";
+import AdGuardCard from "../components/AdGuardCard.vue";
 </script>
 
 <template>
@@ -14,6 +15,7 @@ import AppsCard from "../components/AppsCard.vue";
       <RamCard />
       <DiskNetCard />
       <NetworkCard />
+      <AdGuardCard class="span-all" />
       <AppsCard class="span-all" />
       <AlertsCard class="span-all" />
     </div>

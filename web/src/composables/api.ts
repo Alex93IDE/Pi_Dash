@@ -1,20 +1,61 @@
 import type { PironmanCommand, StreamEvents, UnitAction } from "../../../shared/types";
 import { favoriteKey, usePiStore, type FavoriteSource } from "../stores/pi";
+import { askPin } from "./dialog";
 
 let source: EventSource | null = null;
 
-/** fetch() for the JSON API: throws with the server's own error message. */
+/** The user backed out of a PIN prompt — not an error worth showing. */
+export class Cancelled extends Error {}
+
+// Remembered for this tab only, so it's asked once per visit, not per click.
+const PIN_KEY = "pi-dash-pin";
+const session = {
+  get: () => {
+    try {
+      return sessionStorage.getItem(PIN_KEY);
+    } catch {
+      return null;
+    }
+  },
+  set: (v: string | null) => {
+    try {
+      if (v === null) sessionStorage.removeItem(PIN_KEY);
+      else sessionStorage.setItem(PIN_KEY, v);
+    } catch {
+      // private mode: just ask again next time
+    }
+  },
+};
+
+/**
+ * fetch() for the JSON API: throws with the server's own error message.
+ * When the server wants the action PIN, asks for it and tries again.
+ */
 export async function api<T = void>(method: string, path: string, body?: unknown): Promise<T> {
-  const r = await fetch(`/api${path}`, {
-    method,
-    headers: body === undefined ? undefined : { "Content-Type": "application/json" },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!r.ok) {
+  for (;;) {
+    const pin = session.get();
+    const headers: Record<string, string> = {};
+    if (body !== undefined) headers["Content-Type"] = "application/json";
+    if (pin) headers["X-Pin"] = pin;
+
+    const r = await fetch(`/api${path}`, {
+      method,
+      headers,
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
+    if (r.ok) return (r.status === 204 ? undefined : await r.json()) as T;
+
     const err = await r.json().catch(() => null);
+    if (r.status === 401 && err?.code === "pin") {
+      session.set(null);
+      // No PIN sent yet: just ask. One sent and refused: say so.
+      const typed = await askPin(pin ? err.error : "");
+      if (typed === null) throw new Cancelled("Cancelled");
+      session.set(typed);
+      continue;
+    }
     throw new Error(err?.error ?? `HTTP ${r.status}`);
   }
-  return (r.status === 204 ? undefined : await r.json()) as T;
 }
 
 const unitPath = (source: FavoriteSource, name: string) =>
@@ -57,6 +98,7 @@ export function useApi() {
     on("docker", (d) => Array.isArray(d) && store.setDocker(d));
     on("apps", (d) => Array.isArray(d) && store.setAppStatus(d));
     on("docker_stats", (d) => Array.isArray(d) && store.setDockerStats(d));
+    on("adguard", (d) => (store.adguard = d));
   }
 
   function disconnect() {
@@ -89,7 +131,7 @@ export function useApi() {
       await api("POST", `${unitPath(source, name)}/${action}`, {});
       return null;
     } catch (e) {
-      return (e as Error).message;
+      return e instanceof Cancelled ? null : (e as Error).message;
     } finally {
       delete store.pendingActions[key];
     }

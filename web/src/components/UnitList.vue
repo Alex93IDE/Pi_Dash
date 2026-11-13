@@ -2,6 +2,7 @@
 import { computed, ref, type Component } from "vue";
 import { LoaderCircle, Play, RotateCw, Search, Square, Star } from "lucide-vue-next";
 import { useApi } from "../composables/api";
+import { confirmDialog } from "../composables/dialog";
 import { favoriteKey, usePiStore } from "../stores/pi";
 import { formatBytes, type UnitRow } from "../utils/units";
 import type { UnitAction } from "../../../shared/types";
@@ -100,7 +101,19 @@ const errors = ref<Record<string, string>>({});
 async function act(row: UnitRow, action: UnitAction) {
   if (actionPending(row)) return;
   // Starting is harmless; stopping or restarting something can cut you off.
-  if (action !== "start" && !window.confirm(`${action[0].toUpperCase()}${action.slice(1)} ${row.title}?`)) return;
+  if (action !== "start") {
+    const verb = `${action[0].toUpperCase()}${action.slice(1)}`;
+    const ok = await confirmDialog({
+      title: `${verb} ${row.title}?`,
+      message:
+        action === "stop"
+          ? `It stays stopped until you start it again${row.source === "systemd" ? " or the Pi reboots" : ""}.`
+          : "It will be unavailable for a moment while it restarts.",
+      confirmLabel: verb,
+      tone: action === "stop" ? "danger" : "warn",
+    });
+    if (!ok) return;
+  }
   const key = favoriteKey(row.source, row.name);
   delete errors.value[key];
   const error = await unitAction(row.source, row.name, action);

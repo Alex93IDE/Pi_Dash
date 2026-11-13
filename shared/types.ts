@@ -41,7 +41,37 @@ export type FastData = {
   fan_mode: number;
 };
 
-/** Every 30 seconds: NVMe health, bans and the firewall. */
+/** Power supply health from `vcgencmd get_throttled`. */
+export type PowerState = {
+  // Right now.
+  undervoltage: boolean;
+  capped: boolean; // ARM frequency capped
+  throttled: boolean;
+  soft_temp: boolean; // soft temperature limit active
+  // At some point since boot (stays set until reboot).
+  undervoltage_seen: boolean;
+  capped_seen: boolean;
+  throttled_seen: boolean;
+  soft_temp_seen: boolean;
+  volts: number | null; // Pi 5 5 V input, null on older models
+};
+
+/** AdGuard Home's stats. ok=false means it didn't answer; see error. */
+export type AdGuardData = {
+  ok: boolean;
+  error: string | null;
+  protection: boolean;
+  queries: number;
+  blocked: number;
+  blocked_pct: number;
+  avg_ms: number;
+  span: string; // what the totals cover, e.g. "last 24 h"
+  queries_series: number[]; // one value per hour (or day), oldest first
+  blocked_series: number[];
+  top_blocked: { domain: string; count: number }[];
+};
+
+/** Every 30 seconds: NVMe health, bans, the firewall and power. */
 export type SlowData = {
   // The NVMe fields come straight out of smartctl, so they can be strings
   // like "100%" or "3,234" rather than plain numbers, or "?" when missing.
@@ -55,6 +85,7 @@ export type SlowData = {
   cs_bans: number;
   ufw_status: string;
   ufw_rules: UfwRule[];
+  power: PowerState | null; // null when this isn't a Pi
 };
 
 export type SystemdService = {
@@ -114,6 +145,7 @@ export type Hello = {
   version: string;
   unitControl: boolean; // start/stop/restart enabled in .env
   protectedUnits: string[]; // can be restarted but never stopped
+  pinRequired: boolean; // actions ask for ACTION_PIN
 };
 
 export const HISTORY_RANGES = ["1h", "24h", "7d", "30d"] as const;
@@ -141,6 +173,7 @@ export type StreamEvents = {
   docker: DockerContainer[];
   apps: AppStatus[];
   docker_stats: DockerStats[];
+  adguard: AdGuardData | null;
 };
 
 // Pironman5 case commands, validated on the server.

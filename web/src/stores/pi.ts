@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import type {
+  AdGuardData,
   AppStatus,
   DockerContainer,
   DockerStats,
@@ -67,6 +68,7 @@ const emptySlow: Pending<SlowData> = {
   cs_bans: null,
   ufw_status: null,
   ufw_rules: null,
+  power: null,
 };
 
 export const usePiStore = defineStore("pi", {
@@ -88,6 +90,8 @@ export const usePiStore = defineStore("pi", {
     docker: null as DockerContainer[] | null,
     // CPU and RAM of running containers, by name.
     dockerStats: {} as Record<string, DockerStats>,
+    // undefined until the server says; null = AdGuard not configured.
+    adguard: undefined as AdGuardData | null | undefined,
     // Last check of each app, by id. Empty until the first check arrives.
     appStatus: {} as Record<number, AppStatus>,
     // Favorite toggles sent but not yet confirmed, keyed by favoriteKey() and

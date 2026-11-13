@@ -51,3 +51,11 @@ export const UNIT_CONTROL = env("UNIT_CONTROL", "true").toLowerCase() === "true"
 // Units that can be restarted but never stopped from the dashboard — stopping
 // ssh or the dashboard itself would lock you out of the very tool to undo it.
 export const PROTECTED_UNITS = list("PROTECTED_UNITS", "ssh.service,pi-dash.service");
+
+// Optional PIN asked before start/stop/restart and before editing apps.
+export const ACTION_PIN = env("ACTION_PIN", "");
+
+// AdGuard Home card. Leave ADGUARD_URL empty to hide it.
+export const ADGUARD_URL = env("ADGUARD_URL", "");
+export const ADGUARD_USER = env("ADGUARD_USER", "");
+export const ADGUARD_PASS = env("ADGUARD_PASS", "");

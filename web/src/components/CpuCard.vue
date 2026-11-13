@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Cpu, Thermometer, Zap, Wind } from "lucide-vue-next";
+import { Cpu, Thermometer, Zap, Wind, Plug } from "lucide-vue-next";
+import { powerSummary } from "../utils/power";
 import { usePiStore } from "../stores/pi";
 
 const store = usePiStore();
@@ -49,6 +50,12 @@ function loadColor(load: number): string {
 }
 
 const LOAD_LABELS = ["1m", "5m", "15m"];
+
+// null off a Pi (no vcgencmd): the row is hidden.
+const power = computed(() => {
+  const p = store.slowData.power;
+  return p ? { ...powerSummary(p), volts: p.volts } : null;
+});
 
 const CIRC = 2 * Math.PI * 52;
 const pctDash = computed(() => {
@@ -152,6 +159,13 @@ const pctDash = computed(() => {
           </div>
         </div>
       </div>
+
+      <div v-if="power" class="power" title="Power supply, from vcgencmd get_throttled">
+        <Plug :size="14" :style="{ color: power.color }" />
+        <span class="power-label">Power</span>
+        <span v-if="power.volts !== null" class="power-volts">{{ power.volts.toFixed(2) }} V</span>
+        <span class="power-state" :style="{ color: power.color, borderColor: power.color }">{{ power.label }}</span>
+      </div>
     </div>
   </div>
 </template>
@@ -161,6 +175,44 @@ const pctDash = computed(() => {
   border-color: rgba(34, 197, 94, 0.15);
   box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.03) inset,
     0 0 32px rgba(34, 197, 94, 0.06), 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+
+/* Power supply */
+.power {
+  align-self: stretch; /* the card body centers its children */
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.power-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.power-volts {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  color: var(--text);
+}
+
+.power-state {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  font-size: 10px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  white-space: nowrap;
 }
 
 /* Per-core bars and load average */

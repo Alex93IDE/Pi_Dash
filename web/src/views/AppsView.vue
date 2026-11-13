@@ -2,12 +2,14 @@
 import { onMounted, ref } from "vue";
 import { Check, ExternalLink, LayoutGrid, Pencil, Plus, Trash2, X } from "lucide-vue-next";
 import AppIcon from "../components/AppIcon.vue";
-import { api } from "../composables/api";
+import { api, Cancelled } from "../composables/api";
+import { confirmDialog } from "../composables/dialog";
 import { appHost, resolveAppUrl } from "../utils/apps";
 import type { App, AppInput } from "../../../shared/types";
 
 const apps = ref<App[] | null>(null);
 const loadError = ref<string | null>(null);
+const actionError = ref<string | null>(null);
 const editing = ref(false);
 
 async function load() {
@@ -46,19 +48,26 @@ async function save() {
     form.value = null;
     await load();
   } catch (e) {
-    formError.value = (e as Error).message;
+    if (!(e instanceof Cancelled)) formError.value = (e as Error).message;
   } finally {
     saving.value = false;
   }
 }
 
 async function remove(app: App) {
-  if (!window.confirm(`Remove ${app.name}?`)) return;
+  const ok = await confirmDialog({
+    title: `Remove ${app.name}?`,
+    message: "Only the link is removed — the app itself keeps running.",
+    confirmLabel: "Remove",
+    tone: "danger",
+  });
+  if (!ok) return;
+  actionError.value = null;
   try {
     await api("DELETE", `/apps/${app.id}`);
     await load();
   } catch (e) {
-    window.alert(`Could not remove it: ${(e as Error).message}`);
+    if (!(e instanceof Cancelled)) actionError.value = `Could not remove ${app.name}: ${(e as Error).message}`;
   }
 }
 
@@ -103,6 +112,7 @@ function toggleEditing() {
         </div>
       </form>
 
+      <p v-if="actionError" class="form-error action-error">{{ actionError }}</p>
       <div v-if="loadError" class="empty">Could not load apps: {{ loadError }}</div>
       <div v-else-if="apps === null" class="empty">Loading…</div>
       <div v-else-if="!apps.length && !editing" class="empty">
@@ -317,6 +327,10 @@ a.tile:hover .go {
 .form small {
   font-weight: 400;
   font-size: 10.5px;
+}
+
+.action-error {
+  margin-bottom: 12px;
 }
 
 .form-error {

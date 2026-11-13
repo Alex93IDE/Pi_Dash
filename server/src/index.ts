@@ -11,6 +11,8 @@ import { openDb } from "./db.ts";
 import { History } from "./history.ts";
 import { Icons } from "./icons.ts";
 import { Hub, Publisher } from "./hub.ts";
+import * as adguard from "./adguard.ts";
+import * as power from "./metrics/power.ts";
 import * as security from "./metrics/security.ts";
 import * as storage from "./metrics/storage.ts";
 import * as system from "./metrics/system.ts";
@@ -29,6 +31,7 @@ const hub = new Hub(() => ({
   version: config.VERSION,
   unitControl: config.UNIT_CONTROL,
   protectedUnits: config.PROTECTED_UNITS,
+  pinRequired: Boolean(config.ACTION_PIN),
 }));
 
 const publishers = {
@@ -37,8 +40,8 @@ const publishers = {
     return { ...sys, ...wg, ...case_, timestamp: new Date().toISOString() } satisfies FastData;
   }),
   slow: new Publisher(hub, "slow", config.INTERVAL_SLOW, async () => {
-    const [nvme, sec] = await Promise.all([storage.collect(), security.collect()]);
-    return { ...nvme, ...sec };
+    const [nvme, sec, pwr] = await Promise.all([storage.collect(), security.collect(), power.collect()]);
+    return { ...nvme, ...sec, ...pwr };
   }),
   systemd: new Publisher(hub, "services", config.INTERVAL_SLOW, () => listServices(favorites.names("systemd"))),
   docker: new Publisher(hub, "docker", config.INTERVAL_SLOW, () => listContainers(favorites.names("docker"))),
@@ -46,6 +49,7 @@ const publishers = {
     onlyWatched: true,
   }),
   apps: new Publisher(hub, "apps", config.INTERVAL_SLOW, () => checkAll(apps.list())),
+  adguard: new Publisher(hub, "adguard", config.INTERVAL_SLOW, adguard.collect),
 };
 
 hub.on("fast", (d) => history.add(d));

@@ -68,6 +68,26 @@ export function useAlerts() {
       if (!a.up) list.push({ level: "warn", title: a.name, detail: `app down · ${a.error}`, to: "apps" });
     }
 
+    // Power: under-voltage is the Pi's most common silent problem — it slows
+    // down (or corrupts the disk) without saying a word.
+    const p = slow.power;
+    if (p?.undervoltage) {
+      list.push({ level: "error", title: "Power", detail: "under-voltage now — check the power supply" });
+    } else if (p?.undervoltage_seen) {
+      list.push({ level: "warn", title: "Power", detail: "under-voltage happened since boot" });
+    }
+    if (p && (p.throttled || p.capped)) {
+      list.push({ level: "warn", title: "CPU", detail: p.soft_temp ? "throttled — too hot" : "throttled" });
+    }
+
+    // AdGuard, when configured.
+    const ag = store.adguard;
+    if (ag && !ag.ok) {
+      list.push({ level: "warn", title: "AdGuard", detail: ag.error ?? "not answering" });
+    } else if (ag && !ag.protection) {
+      list.push({ level: "warn", title: "AdGuard", detail: "protection is disabled" });
+    }
+
     // Firewall
     if (slow.ufw_status && slow.ufw_status !== "active") {
       list.push({ level: "error", title: "UFW", detail: `firewall ${slow.ufw_status}`, to: "ufw" });

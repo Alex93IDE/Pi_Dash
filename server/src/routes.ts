@@ -8,6 +8,8 @@ import { BadRequest } from "./errors.ts";
 import type { History } from "./history.ts";
 import type { Icons } from "./icons.ts";
 import type { Hub, Publisher } from "./hub.ts";
+import { ACTION_PIN } from "./config.ts";
+import { pinGuard } from "./pin.ts";
 import * as pironman from "./pironman.ts";
 import { checkAction, isSource, runAction, type Favorites } from "./units.ts";
 
@@ -52,6 +54,8 @@ function requireJson(req: Request, _res: Response, next: NextFunction): void {
 export function apiRouter({ hub, favorites, apps, icons, history, publishers }: Deps): Router {
   const r = Router();
   r.use(sameOrigin, requireJson);
+  // Only for what changes the Pi; favorites and the case lights stay free.
+  const pin = pinGuard(ACTION_PIN);
 
   const unitList = (source: UnitSource) => (source === "systemd" ? hub.get("services") : hub.get("docker")) ?? [];
   const unitPublisher = (source: UnitSource) => (source === "systemd" ? publishers.systemd : publishers.docker);
@@ -85,7 +89,7 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
     res.status(204).end();
   });
 
-  r.post("/units/:source/:name/:action", async (req, res) => {
+  r.post("/units/:source/:name/:action", pin, async (req, res) => {
     const source = unitSource(req);
     const name = String(req.params.name);
     const action = checkAction(source, name, req.params.action, unitList(source));
@@ -117,12 +121,12 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
   r.get("/apps", (_req, res) => {
     res.json(apps.list());
   });
-  r.post("/apps", (req, res) => {
+  r.post("/apps", pin, (req, res) => {
     res.status(201).json(apps.create(validateApp(req.body ?? {})));
     // Check the new one straight away rather than in up to 30 s.
     publishers.apps.trigger();
   });
-  r.put("/apps/:id", (req, res) => {
+  r.put("/apps/:id", pin, (req, res) => {
     const id = appId(req);
     const input = validateApp(req.body ?? {});
     if (!apps.update(id, input)) return void res.status(404).json({ error: "No such app" });
@@ -144,7 +148,7 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
     });
     res.end(Buffer.from(icon.data));
   });
-  r.delete("/apps/:id", (req, res) => {
+  r.delete("/apps/:id", pin, (req, res) => {
     if (!apps.remove(appId(req))) return void res.status(404).json({ error: "No such app" });
     publishers.apps.trigger();
     res.status(204).end();

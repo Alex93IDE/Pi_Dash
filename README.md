@@ -12,7 +12,9 @@ It merges [Pi5_MQTT](https://github.com/Alex93IDE/Pi5_MQTT) and [Pi5_Dashboard](
 - **History** — one averaged sample per minute in SQLite, charted over 1 hour, 24 hours, 7 days or 30 days.
 - **Services and Docker** — every systemd unit and container, searchable, with favorites. Start, stop and restart them from the browser. Containers show their live CPU and RAM, sortable to find the busy one.
 - **Apps** — your own links to whatever else runs on the Pi (Keeper, WGDashboard…), with each app's own icon and a dot saying whether it's answering.
-- **Alerts** — failed units, stopped containers, apps down, firewall down, hot or full hardware, with the count in the browser tab.
+- **Power supply** — the Pi's input voltage and under-voltage / throttling, now and since boot (`vcgencmd`).
+- **AdGuard Home** — queries, blocked share, response time and the most blocked domains, from its API.
+- **Alerts** — failed units, stopped containers, apps down, under-voltage, AdGuard off, firewall down, hot or full hardware, with the count in the browser tab.
 - **UFW** rules, **Fail2ban** and **CrowdSec** ban counts.
 - **Pironman5 controls** — OLED, RGB and fan mode.
 - **Works on a phone** — responsive, swipe between tabs, installable as a PWA.
@@ -75,7 +77,7 @@ bash deploy/install.sh
 - a sudoers rule for a few **read-only** commands (`ufw status`, `wg show`, `smartctl -A`, `fail2ban-client status`), only for the metrics enabled in `.env`
 - with `UNIT_CONTROL=true`, a polkit rule letting the service user **start, stop and restart** systemd units — nothing else (no enable, mask or reboot)
 
-Docker containers are listed and controlled through the `docker` group; the script tells you if your user isn't in it.
+Docker containers are listed and controlled through the `docker` group, and power is read through the `video` group; the script tells you if your user is missing either.
 
 Then open `http://<pi-address>:3010`.
 
@@ -86,6 +88,14 @@ Logs: `journalctl -u pi-dash -f`
 ## Configuration
 
 Everything lives in `.env` — see [`.env.example`](.env.example): port, intervals, history retention, which metrics to collect, and whether units can be controlled.
+
+### Action PIN
+
+Set `ACTION_PIN` to ask for a PIN before starting, stopping or restarting anything and before editing apps. Looking stays open; the PIN is asked once per browser tab. Five wrong tries lock actions for five minutes.
+
+### AdGuard Home
+
+Set `ADGUARD_URL` (e.g. `http://127.0.0.1:80`) plus the user and password you log into AdGuard with, and a card appears on Home. They stay in `.env`, on the Pi.
 
 ### Apps
 
@@ -111,7 +121,7 @@ Releases follow [SemVer](https://semver.org): `bash deploy/release.sh patch|mino
 
 - Keep it on your LAN or behind a VPN. Never expose the port to the internet.
 - Set `HOST` to the LAN or VPN address to keep it off other interfaces.
-- Set `UNIT_CONTROL=false` if you only want to look.
+- Set `ACTION_PIN` so that seeing the dashboard isn't enough to stop things, or `UNIT_CONTROL=false` if you only want to look.
 - `PROTECTED_UNITS` can be restarted but never stopped — by default `ssh` and the dashboard itself, so you can't lock yourself out.
 
 Cross-origin requests that change something are refused, so another web page open in your browser can't act on the Pi behind your back.

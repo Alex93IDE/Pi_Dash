@@ -89,6 +89,13 @@ else
     sudo rm -f "$POLKIT_RULE"
 fi
 
+# vcgencmd (power supply / throttling) talks to the firmware through /dev/vcio.
+if command -v vcgencmd > /dev/null && ! id -nG "$USER" | grep -qw video; then
+    echo ""
+    echo "    Note: $USER is not in the video group, so power and throttling"
+    echo "    can't be read. To allow it: sudo usermod -aG video $USER"
+fi
+
 echo ""
 echo "==> Creating systemd service..."
 sudo tee /etc/systemd/system/$SERVICE_NAME.service > /dev/null <<EOF
