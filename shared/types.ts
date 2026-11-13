@@ -146,6 +146,7 @@ export type Hello = {
   unitControl: boolean; // start/stop/restart enabled in .env
   protectedUnits: string[]; // can be restarted but never stopped
   pinRequired: boolean; // actions ask for ACTION_PIN
+  notify: boolean; // Telegram configured in .env
 };
 
 export const HISTORY_RANGES = ["1h", "24h", "7d", "30d"] as const;

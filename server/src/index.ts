@@ -3,6 +3,7 @@
 import { existsSync } from "node:fs";
 import path from "node:path";
 import express from "express";
+import { computeAlerts } from "../../shared/alerts.ts";
 import type { FastData } from "../../shared/types.ts";
 import { Apps } from "./apps.ts";
 import { checkAll } from "./appStatus.ts";
@@ -17,6 +18,7 @@ import * as security from "./metrics/security.ts";
 import * as storage from "./metrics/storage.ts";
 import * as system from "./metrics/system.ts";
 import * as vpn from "./metrics/vpn.ts";
+import { Notifier, telegramEnabled } from "./notify.ts";
 import * as pironman from "./pironman.ts";
 import { apiRouter } from "./routes.ts";
 import { containerStats, Favorites, listContainers, listServices } from "./units.ts";
@@ -32,6 +34,7 @@ const hub = new Hub(() => ({
   unitControl: config.UNIT_CONTROL,
   protectedUnits: config.PROTECTED_UNITS,
   pinRequired: Boolean(config.ACTION_PIN),
+  notify: telegramEnabled(),
 }));
 
 const publishers = {
@@ -55,6 +58,20 @@ const publishers = {
 hub.on("fast", (d) => history.add(d));
 // Stats aren't collected while nobody watches, so what's cached may be old.
 hub.onConnect(() => publishers.dockerStats.trigger());
+
+// Telegram: the same alerts the dashboard shows, judged on the server so they
+// arrive with no browser open.
+const NOTIFY_EVERY_MS = 15_000;
+const notifier = telegramEnabled() ? new Notifier(db) : null;
+function checkAlerts() {
+  const [fast, slow, services, docker, appStatus, ag] = [
+    hub.get("fast"), hub.get("slow"), hub.get("services"), hub.get("docker"), hub.get("apps"), hub.get("adguard"),
+  ];
+  // Until every collector has reported once, a missing list would read as
+  // "everything fixed".
+  if (!notifier || !fast || !slow || !services || !docker || !appStatus || ag === undefined) return;
+  void notifier.check(computeAlerts({ fast, slow, services, docker, apps: appStatus, adguard: ag }));
+}
 
 // ── HTTP ─────────────────────────────────────────────────
 const app = express();
@@ -92,12 +109,15 @@ const server = app.listen(config.PORT, config.HOST, () => {
 
 for (const p of Object.values(publishers)) p.start();
 const keepAlive = setInterval(() => hub.keepAlive(), 25_000);
+const notifyTimer = setInterval(checkAlerts, NOTIFY_EVERY_MS);
+console.log(notifier ? "[notify] Telegram notifications on" : "[notify] Telegram not configured");
 
 // systemctl stop sends SIGTERM; Ctrl+C sends SIGINT.
 function shutdown() {
   console.log("Shutting down");
   for (const p of Object.values(publishers)) p.stop();
   clearInterval(keepAlive);
+  clearInterval(notifyTimer);
   history.flush();
   hub.closeAll();
   server.close(() => {

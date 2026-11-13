@@ -32,8 +32,8 @@ export default defineConfig({
       injectRegister: false, // registered from src/pwa.ts
       includeAssets: ['favicon.svg', 'favicon-error.svg', 'favicon-warn.svg', 'favicon.ico', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'Pi5 Dashboard',
-        short_name: 'Pi5',
+        name: 'Pi Dash',
+        short_name: 'Pi Dash',
         description: 'Live status and controls for a Raspberry Pi 5 in a Pironman5 case',
         display: 'standalone',
         start_url: '.',

@@ -15,6 +15,7 @@ It merges [Pi5_MQTT](https://github.com/Alex93IDE/Pi5_MQTT) and [Pi5_Dashboard](
 - **Power supply** — the Pi's input voltage and under-voltage / throttling, now and since boot (`vcgencmd`).
 - **AdGuard Home** — queries, blocked share, response time and the most blocked domains, from its API.
 - **Alerts** — failed units, stopped containers, apps down, under-voltage, AdGuard off, firewall down, hot or full hardware, with the count in the browser tab.
+- **Telegram notifications** — the same alerts on your phone, once when they start and once when they're fixed.
 - **UFW** rules, **Fail2ban** and **CrowdSec** ban counts.
 - **Pironman5 controls** — OLED, RGB and fan mode.
 - **Works on a phone** — responsive, swipe between tabs, installable as a PWA.
@@ -97,6 +98,17 @@ Set `ACTION_PIN` to ask for a PIN before starting, stopping or restarting anythi
 
 Set `ADGUARD_URL` (e.g. `http://127.0.0.1:80`) plus the user and password you log into AdGuard with, and a card appears on Home. They stay in `.env`, on the Pi.
 
+### Telegram notifications
+
+1. In Telegram, talk to [@BotFather](https://t.me/BotFather), send `/newbot` and follow the steps. It gives you a token like `123456:ABC-DEF…` — that's `TELEGRAM_BOT_TOKEN`.
+2. Open a chat with your new bot and send it anything (bots can't write to you first).
+3. Open `https://api.telegram.org/bot<token>/getUpdates` in a browser and find `"chat":{"id":…}` — that number is `TELEGRAM_CHAT_ID`. For a group, add the bot to it and use the group's id (negative).
+4. Put both in `.env` and run `bash deploy/install.sh` again (or `sudo systemctl restart pi-dash`). A **Telegram test** button appears on the Alerts card.
+
+A problem has to last a minute before it's sent, and be gone a minute before "OK again" is, so a container restarting or a CPU spike stays quiet. What was sent is remembered in `data/`, so restarting the dashboard doesn't send it again. One message carries everything that changed at once.
+
+The Pi can't tell you it's off. For that, watch it from somewhere else — Uptime Kuma on another machine, for instance.
+
 ### Apps
 
 The **Apps** tab holds links to other things on the Pi. Use `{host}` in the URL, e.g. `http://{host}:10086`: it becomes whatever address you opened the dashboard on, so the same link works on the LAN, over the VPN or by hostname.
@@ -126,7 +138,9 @@ Releases follow [SemVer](https://semver.org): `bash deploy/release.sh patch|mino
 
 Cross-origin requests that change something are refused, so another web page open in your browser can't act on the Pi behind your back.
 
-Nothing secret is stored in the repo or the built bundle: `.env` and `data/` are git-ignored.
+Nothing secret is stored in the repo or the built bundle: `.env` and `data/` are git-ignored. The Telegram token never leaves the server.
+
+Telegram messages go out through Telegram's servers, so they carry what an alert says (unit, container and app names, temperatures) — nothing else.
 
 ## License
 

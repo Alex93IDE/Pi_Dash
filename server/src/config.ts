@@ -59,3 +59,8 @@ export const ACTION_PIN = env("ACTION_PIN", "");
 export const ADGUARD_URL = env("ADGUARD_URL", "");
 export const ADGUARD_USER = env("ADGUARD_USER", "");
 export const ADGUARD_PASS = env("ADGUARD_PASS", "");
+
+// Telegram messages when something goes wrong and when it's fixed. Both empty
+// = no notifications.
+export const TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "");
+export const TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", "");

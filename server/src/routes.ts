@@ -9,6 +9,7 @@ import type { History } from "./history.ts";
 import type { Icons } from "./icons.ts";
 import type { Hub, Publisher } from "./hub.ts";
 import { ACTION_PIN } from "./config.ts";
+import { sendTelegram, telegramEnabled, testMessage } from "./notify.ts";
 import { pinGuard } from "./pin.ts";
 import * as pironman from "./pironman.ts";
 import { checkAction, isSource, runAction, type Favorites } from "./units.ts";
@@ -102,6 +103,18 @@ export function apiRouter({ hub, favorites, apps, icons, history, publishers }: 
     } else {
       res.status(204).end();
     }
+  });
+
+  // ── Notifications ──────────────────────────────────────
+  // Behind the PIN so an open dashboard can't be used to spam the chat.
+  r.post("/notify/test", pin, async (_req, res) => {
+    if (!telegramEnabled()) throw new BadRequest("Telegram is not configured (TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID)");
+    try {
+      await sendTelegram(testMessage());
+    } catch (e) {
+      return void res.status(502).json({ error: `Telegram: ${(e as Error).message}` });
+    }
+    res.status(204).end();
   });
 
   // ── History ────────────────────────────────────────────

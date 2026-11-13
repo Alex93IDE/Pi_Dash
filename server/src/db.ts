@@ -33,6 +33,15 @@ export function openDb(file = path.join(DATA_DIR, "pi-dash.db")): DatabaseSync {
       data       BLOB,
       fetched_at INTEGER NOT NULL
     );
+    -- Alerts already sent to Telegram, so a restart doesn't send them again
+    -- and the "fixed" message knows what it's about.
+    CREATE TABLE IF NOT EXISTS notified (
+      key     TEXT PRIMARY KEY,
+      level   TEXT NOT NULL,
+      title   TEXT NOT NULL,
+      detail  TEXT NOT NULL,
+      sent_at INTEGER NOT NULL
+    );
     -- One row per minute: averages, plus the peak for CPU and temperature.
     CREATE TABLE IF NOT EXISTS metrics (
       ts       INTEGER PRIMARY KEY, -- minute start, ms since epoch

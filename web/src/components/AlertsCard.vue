@@ -1,9 +1,30 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import { RouterLink } from "vue-router";
-import { TriangleAlert, CircleCheck } from "lucide-vue-next";
+import { TriangleAlert, CircleCheck, Send } from "lucide-vue-next";
 import { useAlerts } from "../composables/alerts";
+import { api, Cancelled } from "../composables/api";
+import { usePiStore } from "../stores/pi";
 
 const { alerts, errorCount } = useAlerts();
+const store = usePiStore();
+
+// Telegram test message, offered only when it's configured on the Pi.
+const test = ref<{ state: "idle" | "sending" | "sent" | "failed"; error: string }>({ state: "idle", error: "" });
+let reset: ReturnType<typeof setTimeout>;
+
+async function sendTest() {
+  if (test.value.state === "sending") return;
+  clearTimeout(reset);
+  test.value = { state: "sending", error: "" };
+  try {
+    await api("POST", "/notify/test", {});
+    test.value = { state: "sent", error: "" };
+  } catch (e) {
+    test.value = e instanceof Cancelled ? { state: "idle", error: "" } : { state: "failed", error: (e as Error).message };
+  }
+  reset = setTimeout(() => (test.value = { state: "idle", error: "" }), 6000);
+}
 </script>
 
 <template>
@@ -14,7 +35,20 @@ const { alerts, errorCount } = useAlerts();
       <span v-if="alerts.length" class="count" :class="errorCount ? 'count-error' : 'count-warn'">
         {{ alerts.length }}
       </span>
+      <button
+        v-if="store.server?.notify"
+        type="button"
+        class="test"
+        :class="test.state"
+        :disabled="test.state === 'sending'"
+        title="Send a test message to Telegram"
+        @click="sendTest"
+      >
+        <Send :size="11" />
+        {{ test.state === "sending" ? "Sending…" : test.state === "sent" ? "Sent" : test.state === "failed" ? "Failed" : "Telegram test" }}
+      </button>
     </div>
+    <p v-if="test.state === 'failed'" class="test-error">{{ test.error }}</p>
 
     <div class="card-body">
       <div v-if="!alerts.length" class="ok">
@@ -22,7 +56,7 @@ const { alerts, errorCount } = useAlerts();
         <span>Everything looks fine</span>
       </div>
       <ul v-else class="alerts">
-        <li v-for="(a, i) in alerts" :key="i">
+        <li v-for="a in alerts" :key="a.key">
           <component
             :is="a.to ? RouterLink : 'div'"
             :to="a.to ? { name: a.to } : undefined"
@@ -59,6 +93,52 @@ const { alerts, errorCount } = useAlerts();
   border-radius: 999px;
   font-family: var(--font-mono);
   letter-spacing: 0;
+}
+
+.test {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  background: transparent;
+  color: var(--text-muted);
+  font: 600 10.5px var(--font-sans);
+  letter-spacing: 0;
+  text-transform: none;
+  cursor: pointer;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+/* Right-aligned on its own when there's no count before it. */
+.card-header > span:not(.count) + .test {
+  margin-left: auto;
+}
+
+.test:hover {
+  color: var(--text);
+}
+
+.test:disabled {
+  cursor: wait;
+}
+
+.test.sent {
+  color: #22c55e;
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.test.failed {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.test-error {
+  margin: -12px 0 14px;
+  font-size: 11.5px;
+  color: #ef4444;
+  overflow-wrap: anywhere;
 }
 
 .count-error {

@@ -66,7 +66,7 @@ function onTouchEnd(e: TouchEvent) {
   if (next >= 0 && next < navItems.length) router.push(navItems[next].to);
 }
 
-// Browser tab: "(3) Pi5 Dashboard" and a red/amber dot on the icon while
+// Browser tab: "(3) Pi Dash" and a red/amber dot on the icon while
 // there are alerts, so it's visible from another tab.
 const { alerts, errorCount } = useAlerts();
 const baseTitle = document.title;
@@ -115,7 +115,7 @@ function toggle() {
     <header class="header">
       <!-- Left: title + IP -->
       <div class="header-left">
-        <span class="title">Pi5 Dashboard</span>
+        <span class="title">Pi Dash</span>
         <span class="subtitle">
           <Network :size="11" />
           {{ store.fastData.ip ?? "—" }}
