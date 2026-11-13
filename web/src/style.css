@@ -1,0 +1,217 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  --font-sans: 'Inter', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  --bg:          #0d0e14;
+  --bg-surface:  #13141c;
+  --bg-elevated: #1a1c26;
+
+  --border:      #22253a;
+  --border-soft: #1a1d2e;
+
+  --text:        #e2e4ef;
+  --text-muted:  #525875;
+  --text-dim:    #2e3150;
+
+  --primary:        #049173;
+  --primary-hover:  #05a882;
+  --primary-muted:  rgba(4, 145, 115, 0.15);
+
+  --secondary:       #06b6d4;
+  --secondary-hover: #0cd4f5;
+  --secondary-muted: rgba(6, 182, 212, 0.15);
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --error:   #ef4444;
+
+  font: 16px/1.5 var(--font-sans);
+  color: var(--text);
+  background-color: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+h1, h2, h3, h4 { margin: 0; }
+p { margin: 0; }
+
+code, .mono {
+  font-family: var(--font-mono);
+}
+
+/* ─── Card base ────────────────────────────────────── */
+.card {
+  background: linear-gradient(145deg, rgba(26, 28, 40, 0.96) 0%, rgba(19, 20, 30, 0.98) 100%);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 20px;
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  width: 350px;
+  max-width: 100%; /* fixed card widths shrink to fit a phone */
+
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 12px 40px rgba(0, 0, 0, 0.6),
+    0 1px 0 rgba(255, 255, 255, 0.05) inset;
+  transition: box-shadow 0.3s ease;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: rgba(205, 214, 244, 0.4);
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 22px;
+}
+
+.card-header svg {
+  opacity: 0.6;
+}
+
+.card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+/* ─── Gauge ────────────────────────────────────────── */
+.gauge-wrap {
+  position: relative;
+  width: 128px;
+  height: 128px;
+}
+
+.gauge {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.05);
+  stroke-width: 8;
+}
+
+.gauge-fill {
+  fill: none;
+  stroke-width: 8;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.5s ease;
+}
+
+.gauge-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.gauge-value {
+  font-size: 34px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  transition: color 0.5s ease;
+}
+
+.gauge-unit {
+  font-size: 12px;
+  font-family: var(--font-mono);
+  font-weight: 500;
+  opacity: 0.45;
+  margin-top: 3px;
+}
+
+/* ─── Metrics ──────────────────────────────────────── */
+.metrics {
+  display: flex;
+  gap: 7px;
+  width: 100%;
+}
+
+.metric {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 11px;
+  padding: 8px 10px;
+  flex: 1;
+}
+
+.metric-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.metric-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(107, 112, 144, 0.7);
+}
+
+.metric-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  font-family: var(--font-mono);
+  line-height: 1;
+}
+
+/* ─── Page base (shared by every view) ─────────────── */
+.page {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  align-content: flex-start;
+  gap: 20px;
+  padding: 32px 24px;
+  min-height: 100vh;
+  background: radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      rgba(4, 145, 115, 0.06) 0%,
+      transparent 70%
+    ),
+    var(--bg);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .card {
+    padding: 18px 16px;
+  }
+}
