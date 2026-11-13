@@ -83,6 +83,15 @@ function actionsFor(row: UnitRow): UnitAction[] {
   return isProtected ? ["restart"] : ["restart", "stop"];
 }
 
+// Same hues as the CPU and RAM cards; amber and red when it's getting heavy.
+const CPU_COLOR = "#38bdf8";
+const RAM_COLOR = "#a78bfa";
+function usageColor(pct: number, normal: string) {
+  if (pct >= 90) return "#ef4444";
+  if (pct >= 70) return "#f97316";
+  return normal;
+}
+
 const ACTION_ICON = { start: Play, stop: Square, restart: RotateCw };
 
 // Last failure per row, shown under it until the next attempt.
@@ -160,9 +169,33 @@ async function act(row: UnitRow, action: UnitAction) {
           <span class="title">{{ row.title }}</span>
           <span class="subtitle">{{ row.subtitle }}</span>
         </div>
-        <span v-if="row.usage" class="usage" title="CPU (100 % = one core) · memory">
-          {{ row.usage.cpu.toFixed(1) }} % · {{ formatBytes(row.usage.mem) }}
-        </span>
+        <div v-if="row.usage" class="usage">
+          <span class="meter" title="CPU — 100 % is one full core">
+            <span class="meter-label">CPU</span>
+            <span class="meter-value" :style="{ color: usageColor(row.usage.cpu, CPU_COLOR) }">
+              {{ row.usage.cpu.toFixed(1) }}%
+            </span>
+            <span class="meter-bar">
+              <span
+                :style="{ width: `${Math.min(row.usage.cpu, 100)}%`, background: usageColor(row.usage.cpu, CPU_COLOR) }"
+              />
+            </span>
+          </span>
+          <span class="meter" :title="`RAM — ${row.usage.memPct.toFixed(1)} % of the Pi's memory`">
+            <span class="meter-label">RAM</span>
+            <span class="meter-value" :style="{ color: usageColor(row.usage.memPct, RAM_COLOR) }">
+              {{ formatBytes(row.usage.mem) }}
+            </span>
+            <span class="meter-bar">
+              <span
+                :style="{
+                  width: `${Math.min(Math.max(row.usage.memPct, 2), 100)}%`,
+                  background: usageColor(row.usage.memPct, RAM_COLOR),
+                }"
+              />
+            </span>
+          </span>
+        </div>
         <span v-if="row.tag" class="tag">{{ row.tag }}</span>
         <span class="status">{{ row.status }}</span>
         <div v-if="canControl" class="actions">
@@ -278,10 +311,47 @@ async function act(row: UnitRow, action: UnitAction) {
 
 .usage {
   flex-shrink: 0;
-  font-size: 10.5px;
+  display: flex;
+  gap: 12px;
+}
+
+.meter {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 3px;
+  min-width: 82px;
+}
+
+.meter-label {
+  font-size: 9px;
   font-family: var(--font-mono);
+  letter-spacing: 0.06em;
   color: var(--text-muted);
+}
+
+.meter-value {
+  justify-self: end;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: var(--font-mono);
   white-space: nowrap;
+}
+
+.meter-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.meter-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  transition: width 0.6s ease;
 }
 
 .filter-count {
@@ -466,8 +536,21 @@ async function act(row: UnitRow, action: UnitAction) {
     flex-basis: calc(100% - 47px);
   }
 
-  .tag,
+  .tag {
+    margin-left: 47px;
+  }
+
+  /* Meters get a line of their own, status and buttons the next. */
   .usage {
+    margin-left: 47px;
+    flex-basis: calc(100% - 47px);
+  }
+
+  .usage .meter {
+    flex: 1;
+  }
+
+  .usage + .status {
     margin-left: 47px;
   }
 

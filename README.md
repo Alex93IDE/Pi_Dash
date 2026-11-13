@@ -10,16 +10,30 @@ It merges [Pi5_MQTT](https://github.com/Alex93IDE/Pi5_MQTT) and [Pi5_Dashboard](
 
 - **Live metrics** — CPU (per core, load, temperature, fan), RAM, disk and NVMe health, network throughput, WireGuard peers. Pushed every second over Server-Sent Events.
 - **History** — one averaged sample per minute in SQLite, charted over 1 hour, 24 hours, 7 days or 30 days.
-- **Services and Docker** — every systemd unit and container, searchable, with favorites. Start, stop and restart them from the browser.
-- **Apps** — your own links to whatever else runs on the Pi (Keeper, WGDashboard…).
-- **Alerts** — failed units, stopped containers, firewall down, hot or full hardware, with the count in the browser tab.
+- **Services and Docker** — every systemd unit and container, searchable, with favorites. Start, stop and restart them from the browser. Containers show their live CPU and RAM, sortable to find the busy one.
+- **Apps** — your own links to whatever else runs on the Pi (Keeper, WGDashboard…), with each app's own icon and a dot saying whether it's answering.
+- **Alerts** — failed units, stopped containers, apps down, firewall down, hot or full hardware, with the count in the browser tab.
 - **UFW** rules, **Fail2ban** and **CrowdSec** ban counts.
 - **Pironman5 controls** — OLED, RGB and fan mode.
 - **Works on a phone** — responsive, swipe between tabs, installable as a PWA.
 
+| History | Docker |
+|---|---|
+| ![Metrics history](docs/history.png) | ![Docker containers with CPU and RAM](docs/docker.png) |
+
+| Services | Apps |
+|---|---|
+| ![systemd services](docs/services.png) | ![App links with status](docs/apps.png) |
+
 | Firewall | Pironman |
 |---|---|
 | ![Firewall rules](docs/firewall.png) | ![Pironman controls](docs/pironman.png) |
+
+| On a phone | |
+|---|---|
+| ![Home on a phone](docs/mobile.png) | ![Docker on a phone](docs/mobile-docker.png) |
+
+Screenshots use mock data.
 
 ## How it works
 

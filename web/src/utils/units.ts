@@ -15,7 +15,7 @@ export type UnitRow = {
   subtitle: string;
   status: string;
   tag?: string; // small neutral label, e.g. systemd's unit file state
-  usage?: { cpu: number; mem: number }; // running containers: CPU %, RAM bytes
+  usage?: { cpu: number; mem: number; memPct: number }; // running containers: CPU %, RAM bytes and %
   tone: Tone;
   favorite: boolean;
 };
@@ -74,7 +74,7 @@ export function dockerRow(c: DockerContainer, stats?: DockerStats): UnitRow {
     status: c.status,
     tone: dockerTone(c),
     favorite: c.favorite,
-    usage: stats && c.state === "running" ? { cpu: stats.cpu_pct, mem: stats.mem_bytes } : undefined,
+    usage: stats && c.state === "running" ? { cpu: stats.cpu_pct, mem: stats.mem_bytes, memPct: stats.mem_pct } : undefined,
   };
 }
 

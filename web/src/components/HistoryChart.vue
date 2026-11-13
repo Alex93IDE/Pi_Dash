@@ -57,8 +57,9 @@ function onMove(e: PointerEvent) {
 
 const hoverLeft = computed(() => (hover.value ? (x(hover.value.ts) / W) * 100 : 0));
 
+// A day or more: the time alone is ambiguous ("21:47 … 21:47"), so add the date.
 const spanDays = computed(() => (props.to - props.from) / 86_400_000);
-function formatTs(ts: number, withDate = spanDays.value > 1) {
+function formatTs(ts: number, withDate = spanDays.value >= 1) {
   const d = new Date(ts);
   const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", hour12: false });
   return withDate ? `${d.toLocaleDateString([], { day: "2-digit", month: "short" })} ${time}` : time;

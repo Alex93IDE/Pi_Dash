@@ -117,13 +117,13 @@ const charts = computed(() =>
       <div v-if="error" class="empty">Could not load history: {{ error }}</div>
       <div v-else-if="points === null" class="empty">Loading…</div>
       <div v-else class="grid">
-        <section v-for="c in charts" :key="c.key" class="metric">
-          <div class="metric-head">
-            <span class="metric-title">
+        <section v-for="c in charts" :key="c.key" class="hist">
+          <div class="hist-head">
+            <span class="hist-title">
               <component :is="c.icon" :size="13" :style="{ color: c.color }" />
               {{ c.label }}
             </span>
-            <span v-if="c.avg !== null" class="metric-stats">
+            <span v-if="c.avg !== null" class="hist-stats">
               avg <b>{{ c.format(c.avg) }}</b> · peak <b>{{ c.format(c.peak!) }}</b>
             </span>
           </div>
@@ -187,14 +187,14 @@ const charts = computed(() =>
   }
 }
 
-.metric {
+.hist {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
 }
 
-.metric-head {
+.hist-head {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
@@ -202,7 +202,7 @@ const charts = computed(() =>
   gap: 4px 12px;
 }
 
-.metric-title {
+.hist-title {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -211,13 +211,13 @@ const charts = computed(() =>
   color: var(--text);
 }
 
-.metric-stats {
+.hist-stats {
   font-size: 10.5px;
   font-family: var(--font-mono);
   color: var(--text-muted);
 }
 
-.metric-stats b {
+.hist-stats b {
   font-weight: 500;
   color: var(--text);
 }
