@@ -23,8 +23,15 @@ export async function sendTelegram(html: string): Promise<void> {
     signal: AbortSignal.timeout(10_000),
   });
   if (r.ok) return;
+  // Telegram's own words are terse; say which setting to look at.
+  if (r.status === 404 || r.status === 401) {
+    throw new Error("bot token not recognised — check TELEGRAM_BOT_TOKEN (like 123456789:AAE…, as @BotFather gave it)");
+  }
   const body = (await r.json().catch(() => null)) as { description?: string } | null;
-  throw new Error(body?.description ?? `HTTP ${r.status}`);
+  const reason = body?.description ?? `HTTP ${r.status}`;
+  throw new Error(/chat not found/i.test(reason)
+    ? "chat not found — check TELEGRAM_CHAT_ID, and send your bot a message first"
+    : reason);
 }
 
 const escape = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

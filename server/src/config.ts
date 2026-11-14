@@ -62,5 +62,7 @@ export const ADGUARD_PASS = env("ADGUARD_PASS", "");
 
 // Telegram messages when something goes wrong and when it's fixed. Both empty
 // = no notifications.
-export const TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "");
-export const TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", "");
+// The token goes into the URL as bot<token>, so a pasted "bot" prefix or
+// stray spaces would turn it into a 404.
+export const TELEGRAM_BOT_TOKEN = env("TELEGRAM_BOT_TOKEN", "").trim().replace(/^bot(?=\d)/i, "");
+export const TELEGRAM_CHAT_ID = env("TELEGRAM_CHAT_ID", "").trim();
